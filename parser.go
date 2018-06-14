@@ -206,7 +206,7 @@ func parse(fName, basename, sheetName, regex, out string, colName rune) error {
 
 	xlFile, err := xlsx.OpenFile(fName)
 	if err != nil {
-		fmt.Printf("unable to file :%s\nperhaps it does not exist\n", fName)
+		fmt.Printf("unable to open file :%s\nperhaps it does not exist\n", fName)
 		return err
 	}
 
@@ -238,6 +238,6 @@ func parse(fName, basename, sheetName, regex, out string, colName rune) error {
 	if err = saveData(sheet, validCells, directoryName, out); err != nil {
 		return err
 	}
-	fmt.Printf("successfully parsed %s\ncheck out %s for files", fName, directoryName)
+	fmt.Printf("successfully parsed %s\ncheck out %s for files\n", fName, directoryName)
 	return nil
 }
