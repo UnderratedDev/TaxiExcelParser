@@ -11,34 +11,34 @@ import (
 )
 
 const (
-	// FilePrompt : prompt for reading file path input
-	FilePrompt string = "Enter xlsx file location :"
-	// SheetPrompt : prompt for reading sheet input
-	SheetPrompt string = "Enter the sheet name"
-	// StatementError : error string for creating and checking invalid statement ids
-	StatementError string = "invalid id"
+	// filePrompt : prompt for reading file path input
+	filePrompt string = "Enter xlsx file location :"
+	// sheetPrompt : prompt for reading sheet input
+	sheetPrompt string = "Enter the sheet name"
+	// statementError : error string for creating and checking invalid statement ids
+	statementError string = "invalid id"
 )
 
 func getNames() (string, string, error) {
-	fName, err := readInputWithPrompt(FilePrompt)
+	fName, err := readInputWithPrompt(filePrompt)
 	if err != nil {
 		return "", "", err
 	}
 
-	sheetName, err := readInputWithPrompt(SheetPrompt)
+	sheetName, err := readInputWithPrompt(sheetPrompt)
 	if err != nil {
 		return "", "", err
 	}
 	return fName, sheetName, nil
 }
 
-func getValidCells(sheet *xlsx.Sheet, r *regexp.Regexp, index int) []*MatchedCell {
-	var validCells []*MatchedCell
+func getValidCells(sheet *xlsx.Sheet, r *regexp.Regexp, index int) []*matchedCell {
+	var validCells []*matchedCell
 	for i, row := range sheet.Rows {
 		if len(row.Cells) > index {
 			text := strings.TrimSpace(row.Cells[index].String())
 			if r.MatchString(text) {
-				validCells = append(validCells, &MatchedCell{
+				validCells = append(validCells, &matchedCell{
 					RowIndex:  i,
 					ColIndex:  index,
 					CellValue: text,
@@ -50,7 +50,7 @@ func getValidCells(sheet *xlsx.Sheet, r *regexp.Regexp, index int) []*MatchedCel
 	return validCells
 }
 
-func defaultOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, rowIndex, maxRows, i int) error {
+func defaultOutputCells(sheet, output *xlsx.Sheet, validCells []*matchedCell, rowIndex, maxRows, i int) error {
 	prevIndex := i - 1
 	indexRow := 1
 	if prevIndex > -1 {
@@ -70,7 +70,7 @@ func defaultOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, ro
 	return nil
 }
 
-func monthOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, sz, rowIndex, i int) error {
+func monthOutputCells(sheet, output *xlsx.Sheet, validCells []*matchedCell, sz, rowIndex, i int) error {
 	endRow := sheet.MaxRow
 	nextIndex := i + 1
 	if sz > nextIndex {
@@ -81,7 +81,7 @@ func monthOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, sz, 
 		outputRow := output.AddRow()
 		for _, cell := range sheet.Rows[j].Cells {
 			outputCell := outputRow.AddCell()
-			if err := copyCellWithFill(cell, outputCell, MonthReportFGColour); err != nil {
+			if err := copyCellWithFill(cell, outputCell, monthReportFGColour); err != nil {
 				return err
 			}
 		}
@@ -89,7 +89,7 @@ func monthOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, sz, 
 	return nil
 }
 
-func statementOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, sz, rowIndex, i int) error {
+func statementOutputCells(sheet, output *xlsx.Sheet, validCells []*matchedCell, sz, rowIndex, i int) error {
 	endRow := sheet.MaxRow
 	nextIndex := i + 1
 	if nextIndex < sz {
@@ -104,7 +104,7 @@ func statementOutputCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, 
 	return nil
 }
 
-func creditOutputCells(sheet *xlsx.Sheet, validCells []*MatchedCell, sz int, directoryName string) error {
+func creditOutputCells(sheet *xlsx.Sheet, validCells []*matchedCell, sz int, directoryName string) error {
 	for i, j := 0, 0; i < sz; {
 		file := xlsx.NewFile()
 		output, err := file.AddSheet(validCells[i].CellValue)
@@ -122,43 +122,32 @@ func creditOutputCells(sheet *xlsx.Sheet, validCells []*MatchedCell, sz int, dir
 				return err
 			}
 		}
-		file.Save(getOutputName(directoryName, validCells[i].CellValue, Ext))
+		file.Save(getOutputName(directoryName, validCells[i].CellValue, ext))
 		i = j
 	}
 	return nil
 }
 
-func outputCells(sheet, output *xlsx.Sheet, out string, cell *MatchedCell, validCells []*MatchedCell, i int) error {
+func outputCells(sheet, output *xlsx.Sheet, out string, cell *matchedCell, validCells []*matchedCell, i int) error {
 	if err := copyCells(sheet, output, validCells, 0); err != nil {
 		return err
 	}
 
-	if out == Annual {
-		if err := defaultOutputCells(sheet, output, validCells, cell.RowIndex, sheet.MaxRow, i); err != nil {
-			return err
-		}
-	} else if out == Month {
-		if err := monthOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i); err != nil {
-			return err
-		}
-	} else if out == Shift {
-		if err := copyCells(sheet, output, validCells, 1); err != nil {
-			return err
-		}
-		if err := defaultOutputCells(sheet, output, validCells, cell.RowIndex, sheet.MaxRow, i); err != nil {
-			return err
-		}
-	} else if out == Statement {
-		if err := statementOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i); err != nil {
-			return err
-		}
+	switch out {
+	case annual, shift:
+		return defaultOutputCells(sheet, output, validCells, cell.RowIndex, sheet.MaxRow, i)
+	case month:
+		return monthOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i)
+	case statement:
+		return statementOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i)
+	default:
+		return fmt.Errorf("%s is not a valid document type", out)
 	}
-	return nil
 }
 
-func saveCredit(sheet *xlsx.Sheet, validCells []*MatchedCell, directoryName string) error {
+func saveCredit(sheet *xlsx.Sheet, validCells []*matchedCell, directoryName string) error {
 	sort.Slice(validCells, func(i, j int) bool {
-		// Regex is used before adding, therefore error check can be avoided
+		// regex is used before adding, therefore error check can be avoided
 		a, _ := strconv.Atoi(validCells[i].CellValue)
 		b, _ := strconv.Atoi(validCells[j].CellValue)
 
@@ -171,8 +160,8 @@ func saveCredit(sheet *xlsx.Sheet, validCells []*MatchedCell, directoryName stri
 	return nil
 }
 
-func saveData(sheet *xlsx.Sheet, validCells []*MatchedCell, directoryName, out string) error {
-	if out == CreditCards {
+func saveData(sheet *xlsx.Sheet, validCells []*matchedCell, directoryName, out string) error {
+	if out == creditCards {
 		err := saveCredit(sheet, validCells, directoryName)
 		if err != nil {
 			return err
@@ -188,25 +177,24 @@ func saveData(sheet *xlsx.Sheet, validCells []*MatchedCell, directoryName, out s
 		}
 
 		if err := outputCells(sheet, output, out, cell, validCells, i); err != nil {
-			if err.Error() == StatementError {
+			if err.Error() == statementError {
 				continue
 			}
 			return err
 		}
-
-		file.Save(getOutputName(directoryName, cell.CellValue, Ext))
+		file.Save(getOutputName(directoryName, cell.CellValue, ext))
 	}
 	return nil
 }
 
 func parse(fName, basename, sheetName, regex, out string, colName rune) error {
 	if fName == basename {
-		fName = fmt.Sprintf("%s.%s", fName, Ext)
+		fName = fmt.Sprintf("%s.%s", fName, ext)
 	}
 
 	xlFile, err := xlsx.OpenFile(fName)
 	if err != nil {
-		fmt.Printf("unable to open file :%s\nperhaps it does not exist\n", fName)
+		fmt.Printf("unable to open file : %s\nperhaps it does not exist\n", fName)
 		return err
 	}
 
@@ -217,7 +205,7 @@ func parse(fName, basename, sheetName, regex, out string, colName rune) error {
 
 	sheet, err := getSheet(xlFile, sheetName)
 	if err != nil {
-		fmt.Printf("unable to open sheet :%s\nperhaps it does not exist\n", sheetName)
+		fmt.Printf("unable to open sheet : %s\nperhaps it does not exist\n", sheetName)
 		return err
 	}
 
@@ -227,9 +215,8 @@ func parse(fName, basename, sheetName, regex, out string, colName rune) error {
 	}
 
 	validCells := getValidCells(sheet, r, index)
-	sz := len(validCells)
 	directoryName := fmt.Sprintf("%s_output", basename)
-	if sz > 0 {
+	if len(validCells) > 0 {
 		if err := createDirIfNotExists(directoryName); err != nil {
 			return err
 		}

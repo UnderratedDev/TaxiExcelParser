@@ -6,10 +6,8 @@ import (
 )
 
 func createDirIfNotExists(directoryName string) error {
-	if _, err := os.Stat(directoryName); os.IsNotExist(err) {
-		if err = os.Mkdir(directoryName, os.ModePerm); err != nil {
-			return err
-		}
+	if err := checkIfExists(directoryName); err == nil {
+		return os.Mkdir(directoryName, os.ModePerm)
 	}
 	return nil
 }
@@ -24,7 +22,7 @@ func checkIfExists(path string) error {
 func getOutputName(directoryName, cellValue, ext string) string {
 	outputName := fmt.Sprintf("%s/%s.%s", directoryName, cellValue, ext)
 	for fileIndex, err := 0, checkIfExists(outputName); err != nil; fileIndex++ {
-		outputName = fmt.Sprintf("%s/%s_%d.%s", directoryName, cellValue, fileIndex, Ext)
+		outputName = fmt.Sprintf("%s/%s_%d.%s", directoryName, cellValue, fileIndex, ext)
 	}
 
 	return outputName

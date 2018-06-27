@@ -6,17 +6,17 @@ import (
 )
 
 const (
-	StartRune rune = 'a'
-	EndRune   rune = 'z'
+	startRune rune = 'a'
+	endRune   rune = 'z'
 )
 
 func convertRuneToIndex(r rune) (int, error) {
 	lr := unicode.ToLower(r)
-	if lr < StartRune || lr > EndRune {
+	if lr < startRune || lr > endRune {
 		return -1, errors.New("rune is not between (a -> Z)")
 	}
 
-	return int(lr - StartRune), nil
+	return int(lr - startRune), nil
 }
 
 func getRuneDifference(a rune, b rune) (int, error) {
@@ -30,10 +30,5 @@ func getRuneDifference(a rune, b rune) (int, error) {
 		return -1, err
 	}
 
-	result := c - d
-	if result < 0 {
-		result = -result
-	}
-
-	return result, nil
+	return abs(c - d), nil
 }

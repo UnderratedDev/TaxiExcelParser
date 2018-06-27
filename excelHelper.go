@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -15,8 +14,7 @@ func getSheet(xlFile *xlsx.File, name string) (*xlsx.Sheet, error) {
 			return xlFile.Sheets[i], nil
 		}
 	}
-
-	return nil, errors.New("sheet does not exist in excel file")
+	return nil, fmt.Errorf("sheet %s does not exist in excel file", name)
 }
 
 func copyCell(a *xlsx.Cell, b *xlsx.Cell) error {
@@ -48,7 +46,7 @@ func copyCellWithFill(a *xlsx.Cell, b *xlsx.Cell, fgColour string) error {
 	return nil
 }
 
-func copyCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, index int) error {
+func copyCells(sheet, output *xlsx.Sheet, validCells []*matchedCell, index int) error {
 	outputRow := output.AddRow()
 	for _, cell := range sheet.Rows[index].Cells {
 		outputCell := outputRow.AddCell()
@@ -61,7 +59,7 @@ func copyCells(sheet, output *xlsx.Sheet, validCells []*MatchedCell, index int) 
 }
 
 func xlsxToCsv(name, sheetName string) error {
-	xlFile, err := xlsx.OpenFile(fmt.Sprintf("%s.%s", name, Ext))
+	xlFile, err := xlsx.OpenFile(fmt.Sprintf("%s.%s", name, ext))
 	if err != nil {
 		return err
 	}
