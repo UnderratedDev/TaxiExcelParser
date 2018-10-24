@@ -164,7 +164,13 @@ func saveCredit(sheet *xlsx.Sheet, validCells []*matchedCell, directoryName stri
 func formatSheet(sheet *xlsx.Sheet, out string) error {
 	switch out {
 	case annual:
-		return sheet.SetColWidth(0, 0, 0.67)
+		if err := sheet.SetColWidth(0, 0, 0.67); err != nil {
+		    return err
+        }
+        if err := sheet.SetColWidth(3, 3, 15); err != nil {
+            return err
+        }
+        return nil
 	case month:
 		return nil
 	case shift:
