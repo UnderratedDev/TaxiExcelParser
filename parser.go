@@ -62,7 +62,7 @@ func defaultOutputCells(sheet, output *xlsx.Sheet, validCells []*matchedCell, ro
 		endRow = maxRows
 	}
 
-	for ; indexRow < endRow; indexRow++ {
+	for ;indexRow < endRow; indexRow++ {
 		if err := copyCells(sheet, output, validCells, indexRow); err != nil {
 			return err
 		}
@@ -129,19 +129,20 @@ func creditOutputCells(sheet *xlsx.Sheet, validCells []*matchedCell, sz int, dir
 }
 
 func outputCells(sheet, output *xlsx.Sheet, out string, cell *matchedCell, validCells []*matchedCell, i int) error {
+	// TODO set row height
 	if err := copyCells(sheet, output, validCells, 0); err != nil {
 		return err
 	}
 
 	switch out {
-	case annual, shift:
-		return defaultOutputCells(sheet, output, validCells, cell.RowIndex, sheet.MaxRow, i)
-	case month:
-		return monthOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i)
-	case statement:
-		return statementOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i)
-	default:
-		return fmt.Errorf("%s is not a valid document type", out)
+		case annual, shift:
+			return defaultOutputCells(sheet, output, validCells, cell.RowIndex, sheet.MaxRow, i)
+		case month:
+			return monthOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i)
+		case statement:
+			return statementOutputCells(sheet, output, validCells, len(validCells), cell.RowIndex, i)
+		default:
+			return fmt.Errorf("%s is not a valid document type", out)
 	}
 }
 
@@ -158,6 +159,28 @@ func saveCredit(sheet *xlsx.Sheet, validCells []*matchedCell, directoryName stri
 		return err
 	}
 	return nil
+}
+
+func formatSheet(sheet *xlsx.Sheet, out string) error {
+	switch out {
+	case annual:
+		return sheet.SetColWidth(0, 0, 0.67)
+	case month:
+		return nil
+	case shift:
+		return nil
+	case statement:
+		if err := sheet.SetColWidth(0, 0, 11); err != nil {
+			return err
+		}
+		if err := sheet.SetColWidth(2, 2, 15); err != nil {
+			return err
+		}
+		sheet.Rows[5].SetHeight(100)
+		return nil
+	default:
+		return fmt.Errorf("%s is not a valid document type", out)
+	}
 }
 
 func saveData(sheet *xlsx.Sheet, validCells []*matchedCell, directoryName, out string) error {
@@ -180,6 +203,10 @@ func saveData(sheet *xlsx.Sheet, validCells []*matchedCell, directoryName, out s
 			if err.Error() == statementError {
 				continue
 			}
+			return err
+		}
+
+		if err := formatSheet(output, out); err != nil {
 			return err
 		}
 		file.Save(getOutputName(directoryName, cell.CellValue, ext))

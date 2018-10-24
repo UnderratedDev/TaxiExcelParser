@@ -76,7 +76,7 @@ func main() {
 			}
 
 			basename := getBaseName(fName)
-			go func() {
+			// go func() {
 				fmt.Printf("working on %s in the background\n", fName)
 				switch out {
 				case annual:
@@ -90,7 +90,7 @@ func main() {
 				case creditCards:
 					parse(fName, basename, sheetName, creditRegex, out, creditColName)
 				}
-			}()
+			// }()
 		} else {
 			fmt.Printf("%s is not a vaild command\n", out)
 		}

@@ -8,6 +8,12 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
+// TODO use in future to set types to cells, such as numeric, etc.
+const (
+	numeric  string = "^\\d+$"
+	currency string = "^\\d+.\\d+$"
+)
+
 func getSheet(xlFile *xlsx.File, name string) (*xlsx.Sheet, error) {
 	for i := range xlFile.Sheets {
 		if xlFile.Sheets[i].Name == name {
@@ -17,10 +23,20 @@ func getSheet(xlFile *xlsx.File, name string) (*xlsx.Sheet, error) {
 	return nil, fmt.Errorf("sheet %s does not exist in excel file", name)
 }
 
-func copyCell(a *xlsx.Cell, b *xlsx.Cell) error {
+func formatValue(value *string) {
+	if *value == "0" {
+		*value = "-"
+	}
+}
+
+func copyCell(a *xlsx.Cell, b *xlsx.Cell, format bool) error {
 	value, err := a.FormattedValue()
 	if err != nil {
 		return err
+	}
+
+	if format {
+		formatValue(&value)
 	}
 
 	b.SetString(value)
@@ -50,7 +66,7 @@ func copyCells(sheet, output *xlsx.Sheet, validCells []*matchedCell, index int) 
 	outputRow := output.AddRow()
 	for _, cell := range sheet.Rows[index].Cells {
 		outputCell := outputRow.AddCell()
-		if err := copyCell(cell, outputCell); err != nil {
+		if err := copyCell(cell, outputCell, true); err != nil {
 			return err
 		}
 	}
