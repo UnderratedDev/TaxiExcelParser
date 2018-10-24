@@ -176,7 +176,9 @@ func formatSheet(sheet *xlsx.Sheet, out string) error {
 		if err := sheet.SetColWidth(2, 2, 15); err != nil {
 			return err
 		}
-		sheet.Rows[5].SetHeight(100)
+		if len(sheet.Rows) > 5 {
+            sheet.Rows[5].SetHeight(100)
+        }
 		return nil
 	default:
 		return fmt.Errorf("%s is not a valid document type", out)
